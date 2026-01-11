@@ -10,7 +10,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.spritesheet('cards', 'public/assets/cards.png', {
+        this.load.spritesheet('cards', 'assets/cards.png', {
             frameWidth: 53,
             frameHeight: 70,
             spacing: 3,
