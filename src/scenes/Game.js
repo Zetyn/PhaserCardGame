@@ -11,17 +11,17 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('bg_gameplay', 'public/assets/bg_gameplay.jpg');
+        this.load.image('bg_gameplay', 'assets/bg_gameplay.jpg');
 
         this.load.atlas({
             key: 'common1',
-            textureURL: 'public/assets/common1.png',
-            atlasURL: 'public/assets/common1.json'
+            textureURL: 'assets/common1.png',
+            atlasURL: 'assets/common1.json'
         });
         this.load.atlas({
             key: 'common2',
-            textureURL: 'public/assets/common2.png',
-            atlasURL: 'public/assets/common2.json'
+            textureURL: 'assets/common2.png',
+            atlasURL: 'assets/common2.json'
         });
     }
 
