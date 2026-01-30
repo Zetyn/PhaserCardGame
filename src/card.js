@@ -1,7 +1,7 @@
 export default class Card extends Phaser.GameObjects.Container {
     static SCALE = 1.3;
     
-    // 🎯 Константи для мапінгу (виносимо з методів)
+    // Константи для мапінгу (виносимо з методів)
     static SUIT_TO_MINI_ICON = {
         'hearts': 3,
         'diamonds': 2,
@@ -37,13 +37,13 @@ export default class Card extends Phaser.GameObjects.Container {
         this._buildCard();
         this._setupInteraction();
 
-        scene.input.enableDebug(this); 
+        //scene.input.enableDebug(this); 
 
         scene.add.existing(this);
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🏗️ ІНІЦІАЛІЗАЦІЯ
+    //  ІНІЦІАЛІЗАЦІЯ
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     _buildCard() {
@@ -73,7 +73,7 @@ export default class Card extends Phaser.GameObjects.Container {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🎨 ВІЗУАЛЬНІ ЕЛЕМЕНТИ
+    //  ВІЗУАЛЬНІ ЕЛЕМЕНТИ
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     _addCornerElements() {
@@ -135,7 +135,7 @@ export default class Card extends Phaser.GameObjects.Container {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🔄 ЛОГІКА ПЕРЕВЕРТАННЯ
+    //  ЛОГІКА ПЕРЕВЕРТАННЯ
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     flipUp() {
@@ -159,7 +159,7 @@ export default class Card extends Phaser.GameObjects.Container {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🎯 ДОПОМІЖНІ МЕТОДИ (ПРИВАТНІ)
+    //  ДОПОМІЖНІ МЕТОДИ (ПРИВАТНІ)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     _getCardSpriteIndex() {
@@ -198,7 +198,7 @@ export default class Card extends Phaser.GameObjects.Container {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🎨 ВІЗУАЛЬНІ ЕФЕКТИ
+    //  ВІЗУАЛЬНІ ЕФЕКТИ
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     setTint(color) {
@@ -210,7 +210,7 @@ export default class Card extends Phaser.GameObjects.Container {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🔄 ОНОВЛЕННЯ КАРТИ
+    //  ОНОВЛЕННЯ КАРТИ
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     refresh() {
@@ -234,7 +234,7 @@ export default class Card extends Phaser.GameObjects.Container {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 📐 DEPRECATED (залишено для сумісності)
+    //  DEPRECATED (залишено для сумісності)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     getColorSuffix() {

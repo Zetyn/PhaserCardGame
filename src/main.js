@@ -1,3 +1,4 @@
+import LevelSelectScene from './scenes/LevelSelectScene.js';
 import GameScene from './scenes/Game.js'
 
 new Phaser.Game({
@@ -8,5 +9,5 @@ new Phaser.Game({
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
-    scene: GameScene
+    scene: [LevelSelectScene, GameScene]
 });
