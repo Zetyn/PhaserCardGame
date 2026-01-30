@@ -173,7 +173,6 @@ export default class Stack extends Phaser.GameObjects.Container {
     // Метод для оновлення видимості карт (тільки верхня активна)
     enforceTopCardVisibility() {
             if (this.scene.isShuffling) return;
-
             if (this.type === 'foundation') return;
 
             const topIndex = this.cards.length - 1;
@@ -182,7 +181,6 @@ export default class Stack extends Phaser.GameObjects.Container {
                 if (index === topIndex) {
                     // --- ВЕРХНЯ КАРТА ---
                     if (!card.faceUp) {
-
                         if (this.type !== 'foundation') { 
                         card.faceUp = true;
                         if (card.refresh) card.refresh(); 
@@ -196,9 +194,9 @@ export default class Stack extends Phaser.GameObjects.Container {
                     // Draggable встановлюється в updatePositions для Tableau
                 } else {
                     // --- НИЖНІ КАРТИ ---
-                    if (card.faceUp) {
+                    /*if (card.faceUp) {
                         card.flipDown(); 
-                    }
+                    }*/
                     
                     card.setTint(0x999999); 
                     card.disableInteractive();

@@ -37,17 +37,17 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('bg_gameplay', 'assets/bg_gameplay.jpg');
+        this.load.image('bg_gameplay', 'public/assets/bg_gameplay.jpg');
 
         this.load.atlas({
             key: 'common1',
-            textureURL: 'assets/common1.png',
-            atlasURL: 'assets/common1.json'
+            textureURL: 'public/assets/common1.png',
+            atlasURL: 'public/assets/common1.json'
         });
         this.load.atlas({
             key: 'common2',
-            textureURL: 'assets/common2.png',
-            atlasURL: 'assets/common2.json'
+            textureURL: 'public/assets/common2.png',
+            atlasURL: 'public/assets/common2.json'
         });
     }
 
@@ -240,75 +240,105 @@ export default class GameScene extends Phaser.Scene {
 
         // DRAG & DROP
         this.input.on('dragstart', (pointer, card) => {
+            if (this.isShuffling) return;
+
+            // Якщо зараз інша карта летить додому - зупиняємо її МИТТЄВО
+            if (this.returningCard && this.returningCard !== card) {
+                this.tweens.killTweensOf(this.returningCard);
+                this.returningCard.isReturning = false;
+                
+                // Миттєво телепортуємо її додому БЕЗ анімації
+                this.returningCard.x = this.returningCard.homeX;
+                this.returningCard.y = this.returningCard.homeY;
+                this.returningCard.rotation = this.returningCard.startRotation || 0;
+                this.returningCard.setScale(1.3);
+                
+                // Повертаємо в правильний шар
+                if (this.returningCard.sourceStack) {
+                    if (this.returningCard.sourceStack.type === 'tableau' && this.tableauLayer) {
+                        this.tableauLayer.add(this.returningCard);
+                    } else if (this.returningCard.sourceStack.type === 'foundation' && this.foundationLayer) {
+                        this.foundationLayer.add(this.returningCard);
+                    }
+                }
+                
+                this.returningCard = null;
+            }
+
+            // Якщо карта летіла додому, а ми її схопили — зупиняємо політ
+            if (card.isReturning) {
+                card.isReturning = false;
+                this.returningCard = null;
+            }
+
+            // Туторіал
             if (this.tutorialManager && this.tutorialManager.isActive) {
                 const step = this.tutorialManager.steps[this.tutorialManager.currentStepIndex];
                 
                 if (step.action === 'pick') {
-                    // Перевірка: чи це та сама карта?
                     if (card.value !== step.card?.value || card.suit !== step.card?.suit) {
                         console.log(" TUTORIAL BLOCK: Цю карту чіпати не можна!");
-                        
                         this.shakeCard(card);
-                        // ВАЖЛИВО: Обов'язково зупиняємо подію драгу у Phaser, 
-                        // щоб він не думав, що ми щось тягнемо.
-                        // Хоча простий return теж спрацює візуально, бо ми не змінимо this.draggedCard
                         return; 
                     }
-
-                    // Якщо карта правильна — кажемо туторіалу "ОК" і йдемо далі
                     this.tutorialManager.onDragStart(card);
                 }
             }
 
+            // Зупиняємо ВСІ твіни цієї карти
+            this.tweens.killTweensOf(card);
+            
+            // Встановлюємо draggedCard ОДРАЗУ
             this.draggedCard = card;
+
+            // Виймаємо з контейнера
             if (card.parentContainer) {
                 card.parentContainer.remove(card);
             }
             this.add.existing(card);
 
+            // Отримуємо світові координати
+            const matrix = card.getWorldTransformMatrix();
+            card.x = matrix.tx; 
+            card.y = matrix.ty;
+
             card.setDepth(99999);
             card.startRotation = card.rotation;
 
-            this.tweens.killTweensOf(card);
-            // -----------------------
-
-            // АНІМАЦІЯ ПІДЙОМУ (Твій код далі без змін...)
+            // Анімація підйому
             this.tweens.add({
                 targets: card,
                 scale: 1.5,
                 rotation: 0,
-                duration: 200,
+                duration: 150,
                 ease: 'Cubic.out'
             });
+
+            // Відкриваємо карту під нею
             const stack = card.sourceStack;
             if (stack && stack.cards.length > 1) {
-                // Знаходимо індекс нашої карти
                 const myIndex = stack.cards.indexOf(card);
                 
-                // Якщо під нами є карта (індекс більше 0)
                 if (myIndex > 0) {
                     const cardBelow = stack.cards[myIndex - 1];
                     
-                    // Відкриваємо її, якщо вона закрита
                     if (!cardBelow.faceUp) {
                         cardBelow.faceUp = true;
                         
-                        // Оновлюємо текстуру
                         if (cardBelow.refresh) cardBelow.refresh();
                         else cardBelow.flipUp();
                         
-                        // Робимо її активною (щоб можна було потім на неї клікнути)
                         cardBelow.setInteractive();
                         cardBelow.clearTint();
                         
-                        // Якщо це табло — дозволяємо тягнути
                         if (stack.type === 'tableau') {
-                             this.input.setDraggable(cardBelow);
+                            this.input.setDraggable(cardBelow);
                         }
                     }
                 }
             }
 
+            // Історія
             this.history.push({
                 card: card,
                 fromStack: card.sourceStack
@@ -327,47 +357,53 @@ export default class GameScene extends Phaser.Scene {
         this.input.on('dragend', (pointer, card) => {
             if (!card || !card.scene) return;
 
+            // Перевіряємо, чи це та карта, яку ми тягнемо
+            if (this.draggedCard !== card) {
+                console.warn(" DragEnd для не-draggedCard, ігноруємо");
+                return;
+            }
+
+            //Миттєво звільняємо "руку"
+            this.draggedCard = null;
+
+            //Зупиняємо всі твіни цієї карти
+            this.tweens.killTweensOf(card);
+
             card.clearTint();
             let placed = false;
             
             const allStacks = [...this.tableau, ...this.foundation];
             
+            // Перевірка дропу
             for (let stack of allStacks) {
                 if (stack === card.sourceStack) continue;
-
 
                 const isOver = stack.containsPoint(card.x, card.y);
                 
                 if (isOver) {
                     let canDrop = stack.canPlace(card);
 
+                    // Туторіал
                     if (canDrop && this.tutorialManager && this.tutorialManager.isActive) {
-                        // Питаємо менеджера: "Можна сюди?"
                         const allowedByTutorial = this.tutorialManager.validateDrop(card, stack);
-                        
-                        if (!allowedByTutorial) {
-                            console.log(" Tutorial says: Wrong place!");
-                            canDrop = false; // Блокуємо, навіть якщо гра дозволяє
-                        }
+                        if (!allowedByTutorial) canDrop = false;
                     }
 
+                    // Не класти назад на ту саму купу
                     if (canDrop && stack.cards.length === 0 && stack.type === 'tableau') {
                         const sourceStack = card.sourceStack;
                         const cardIndex = sourceStack.cards.indexOf(card);
-
-                        if (cardIndex === 0) {
-                            canDrop = false;
-                        }
-
+                        if (cardIndex === 0) canDrop = false; 
                         if (cardIndex > 0) {
                             const cardBelow = sourceStack.cards[cardIndex - 1];
-                            if (cardBelow && cardBelow.faceUp) {
-                                canDrop = false;
-                            }
+                            if (cardBelow && cardBelow.faceUp) canDrop = false;
                         }
                     }
 
                     if (canDrop) {
+                        // ═══════════════════════════════════════════
+                        // УСПІШНИЙ ДРОП
+                        // ═══════════════════════════════════════════
                         
                         const oldStack = card.sourceStack;
                         if (oldStack) {
@@ -375,44 +411,83 @@ export default class GameScene extends Phaser.Scene {
                             oldStack.updatePositions(); 
                         }
 
-                        this.draggedCard = null;
                         stack.push(card);
                         placed = true;
                         
-                        // Оновлюємо рахунок, ТІЛЬКИ якщо ми поклали карту у ФУНДАЦІЮ (верхні стопки)
-                        if (stack.type === 'foundation') {
-                            this.updateScore();
-                        }
-                        // -----------------------------
+                        // Зберігаємо цільові координати
+                        const targetX = card.homeX; // stack.push() вже встановив homeX/homeY
+                        const targetY = card.homeY;
+                        const targetRotation = stack.rotation || 0;
 
+                        // Виймаємо з контейнера для анімації
+                        if (card.parentContainer) card.parentContainer.remove(card);
+                        this.add.existing(card);
+                        
+                        // Повертаємо до позиції мишки для "вльоту"
+                        card.x = pointer.x;
+                        card.y = pointer.y;
+
+                        if (stack.type === 'foundation') this.updateScore();
+                        
                         if (this.tutorialManager && this.tutorialManager.isActive) {
                             this.tutorialManager.onCardPlaced(card, stack);
                         }
-                        
+
+                        // Анімація вльоту
                         this.tweens.add({
                             targets: card,
-                            scale: 1.3, // Повертаємо до нормального розміру (було збільшено при drag)
-                            duration: 200,
-                            ease: 'Cubic.out'
+                            x: targetX,
+                            y: targetY,
+                            rotation: targetRotation,
+                            scale: 1.3,
+                            duration: 150,
+                            ease: 'Cubic.out',
+                            onComplete: () => {
+                                // Повертаємо в правильний шар
+                                if (stack.type === 'tableau' && this.tableauLayer) {
+                                    this.tableauLayer.add(card);
+                                } else if (stack.type === 'foundation' && this.foundationLayer) {
+                                    this.foundationLayer.add(card);
+                                }
+                                
+                                // Страхуємо координати
+                                card.x = targetX;
+                                card.y = targetY;
+                                
+                                this.sortDisplayOrder(); 
+                                this.checkWin();
+                            }
                         });
-
-                        this.checkWin();
+                        
                         break; 
                     }
                 }
             }
             
+            // ═══════════════════════════════════════════
+            // ПОВЕРНЕННЯ ДОДОМУ (якщо не поклали)
+            // ═══════════════════════════════════════════
+            
             if (!placed) {
+                // Очищаємо історію
                 if (this.history.length > 0) {
-                     const lastAction = this.history[this.history.length - 1];
-                     if (lastAction.card === card) {
-                         this.history.pop();
-                     }
+                    const lastAction = this.history[this.history.length - 1];
+                    if (lastAction.card === card) this.history.pop();
                 }
 
                 if (this.tutorialManager && this.tutorialManager.isActive) {
                     this.tutorialManager.onMoveCancelled();
                 }
+
+                // Позначаємо цю карту як "що повертається"
+                this.returningCard = card;
+                card.isReturning = true;
+
+                // Розраховуємо швидкість
+                const dist = Phaser.Math.Distance.Between(card.x, card.y, card.homeX, card.homeY);
+                const dynamicDuration = Math.min(250, Math.max(100, dist / 2));
+
+                // НЕ disableInteractive()! Карту можна перехопити.
 
                 this.tweens.add({
                     targets: card,
@@ -420,22 +495,41 @@ export default class GameScene extends Phaser.Scene {
                     y: card.homeY,
                     rotation: card.startRotation || 0, 
                     scale: 1.3,          
-                    duration: 300,       
+                    duration: dynamicDuration,       
                     ease: 'Back.out',    
                     onComplete: () => {
-                        if (this.scene.isActive()) {
-                            this.sortDisplayOrder();
-                            if (this.draggedCard === card) this.draggedCard = null;
+                        // Перевіряємо, чи карта не була перехоплена
+                        if (card.isReturning) {
+                            card.isReturning = false;
+                            this.returningCard = null;
+                            
+                            if (this.scene.isActive()) {
+                                // Повертаємо в шар
+                                if (card.sourceStack) {
+                                    if (card.sourceStack.type === 'tableau' && this.tableauLayer) {
+                                        this.tableauLayer.add(card);
+                                    } else if (card.sourceStack.type === 'foundation' && this.foundationLayer) {
+                                        this.foundationLayer.add(card);
+                                    }
+                                }
+                                this.sortDisplayOrder();
+                            }
+                        }
+                    },
+                    onUpdate: (tween, target) => {
+                        // Якщо під час анімації карту знову схопили - зупиняємо твін
+                        if (!target.isReturning) {
+                            tween.stop();
                         }
                     }
                 });
             } else {
                 this.sortDisplayOrder();
                 this.updateUndoButtonState();
-                this.draggedCard = null;
             }
         });
 
+        this.returningCard = null;
         //this.input.enableDebug(this.tableauLayer); 
         // або просто натисни клавішу, щоб увімкнути дебаг для всіх об'єктів
         this.input.keyboard.on('keydown-D', () => {
@@ -467,6 +561,43 @@ export default class GameScene extends Phaser.Scene {
         }
     
     }
+
+    prepareStacksForShuffle() {
+    // Проходимось по всіх стовпцях (Tableau)
+    this.tableau.forEach(stack => {
+        // Якщо в стопці немає карт - пропускаємо
+        if (stack.cards.length === 0) return;
+
+        // Індекс верхньої карти
+        const topIndex = stack.cards.length - 1;
+
+        stack.cards.forEach((card, index) => {
+            const isTopCard = (index === topIndex);
+
+            if (!isTopCard) {
+                // --- ЦЕ КАРТА ПІД НИЗОМ ---
+                
+                // Якщо вона раптом відкрита — закриваємо її
+                if (card.faceUp) {
+                    card.faceUp = false; 
+                    card.flipDown(); // Запускаємо анімацію повороту спиною
+                }
+                
+                // Про всяк випадок вимикаємо інтерактивність і затемнюємо
+                card.disableInteractive();
+                card.setTint(0x999999); 
+            } else {
+                // --- ЦЕ ВЕРХНЯ КАРТА ---
+                // Її поки не чіпаємо, вона має бути відкрита до моменту збору карт
+                if (!card.faceUp) {
+                    card.faceUp = true;
+                    card.flipUp();
+                }
+                card.clearTint();
+            }
+        });
+    });
+}
 
     shakeCard(card) {
         // Захист від подвійного виклику (щоб карту не ковбасило, якщо клікати як скажений)
@@ -767,41 +898,52 @@ export default class GameScene extends Phaser.Scene {
 
         this.setBonusButtonsState(false);
         this.isAnimatingBonus = true;
-        this.isShuffling = true; // БЛОКУЄМО авто-відкриття в стеках
+        
+        // 1. БЛОКУЄМО гру і стеки
+        this.isShuffling = true; 
 
-        // Знаходимо всі верхні карти, які зараз відкриті
-        const topCards = [];
-        this.tableau.forEach(stack => {
-            const card = stack.top();
-            if (card) topCards.push(card);
-        });
+        // 2. СПОЧАТКУ наводимо лад в нижніх картах (твоя нова функція)
+        // Вона переверне всі карти під низом сорочкою догори
+        this.prepareStacksForShuffle();
 
-        if (topCards.length === 0) {
-            this.isAnimatingBonus = false;
-            this.isShuffling = false;
-            return;
-        }
+        // 3. Робимо паузу 250мс, щоб анімація закриття нижніх карт почалася
+        // і виглядала природно перед тим, як почнуть крутитися верхні
+        this.time.delayedCall(250, () => {
 
-        // АНІМАЦІЯ 1: Face -> Back (без пауз)
-        this.tweens.add({
-            targets: topCards,
-            scaleX: 0,         // Стискаємо до 0
-            duration: 150,     // Швидкість стискання
-            delay: this.tweens.stagger(40), // Хвиля
-            
-            // МАГІЯ ТУТ:
-            yoyo: true,        // Автоматично розширює назад до 1.3
-            
-            // Ця функція спрацює в момент, коли scaleX = 0 (карта невидима)
-            onYoyo: (tween, target) => {
-                target.flipDown(); // Міняємо на card_shirt
-            },
+            // Знаходимо всі верхні карти, які зараз відкриті
+            const topCards = [];
+            this.tableau.forEach(stack => {
+                const card = stack.top();
+                if (card) topCards.push(card);
+            });
 
-            // Коли ВСІ карти закінчили анімацію "туди-сюди"
-            onComplete: () => {
-                // Тепер, коли всі лежать сорочкою догори, мішаємо дані
-                this.performInternalShuffle(); 
+            if (topCards.length === 0) {
+                // Якщо карт немає, просто запускаємо логіку перемішування
+                this.performInternalShuffle();
+                return;
             }
+
+            // АНІМАЦІЯ: Face -> Back для верхніх карт
+            this.tweens.add({
+                targets: topCards,
+                scaleX: 0,        // Стискаємо до 0
+                duration: 150,    // Швидкість стискання
+                delay: this.tweens.stagger(40), // Хвиля
+                
+                yoyo: true,       // Автоматично розширює назад
+                
+                // Ця функція спрацює в момент, коли scaleX = 0 (карта невидима)
+                onYoyo: (tween, target) => {
+                    target.flipDown(); // Верхні карти теж стають сорочкою
+                },
+
+                // Коли ВСІ верхні карти перевернулися
+                onComplete: () => {
+                    // Тепер абсолютно всі карти на столі лежать сорочкою догори (і нижні, і верхні).
+                    // Можна сміливо збирати їх в колоду і мішати.
+                    this.performInternalShuffle(); 
+                }
+            });
         });
     }
 
@@ -890,6 +1032,7 @@ export default class GameScene extends Phaser.Scene {
         // Shuffle (праворуч, нижній ряд)
         const shuffleBtn = this.createMenuButton(colRight, row2Y, 'common1', 'magnet_icon', ``, () => {
             if (this.tutorialManager && this.tutorialManager.isActive) return;
+            if (this.isAnimatingBonus || this.isShuffling) return;;
             this.animateShuffleSequence();
         });
         this.shuffleBg = shuffleBtn.bg;
