@@ -11,14 +11,14 @@ export default class LevelSelectScene extends Phaser.Scene {
     preload() {
         this.load.atlas(
             'common1', 
-            'public/assets/common1.png', 
-            'public/assets/common1.json'
+            'assets/common1.png', 
+            'assets/common1.json'
         );
         this.load.atlas('common2', 
-            'public/assets/common2.png', 
-            'public/assets/common2.json'
+            'assets/common2.png', 
+            'assets/common2.json'
         );
-        this.load.image('map1', 'public/assets/map1.jpg'); // Фон
+        this.load.image('map1', 'assets/map1.jpg'); // Фон
     }
 
     create() {
